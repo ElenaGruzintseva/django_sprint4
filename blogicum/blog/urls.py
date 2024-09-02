@@ -3,8 +3,8 @@ from django.urls import path
 from . views import (
     CategoryPostsView, CommentAddView, CommentEditView, CommentDeleteView,
     PostCreateView, PostDetailView, PostListView, PostEditView,
-    PostDeleteView, ProfileUserView, ProfileUpdateView
-    )
+    PostDeleteView, ProfileUserView, ProfileUpdateView)
+
 
 app_name = 'blog'
 urlpatterns = [
