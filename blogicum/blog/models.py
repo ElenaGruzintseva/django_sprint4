@@ -1,18 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
+
 from blog import constants
 
 
 User = get_user_model()
 
 
-class IsPublishedCreatedAtModel(models.Model):
-    is_published = models.BooleanField(
-        'Опубликовано',
-        default=True,
-        help_text='Снимите галочку, чтобы скрыть публикацию.'
-    )
+class CreatedAt(models.Model):
     created_at = models.DateTimeField(
         'Добавлено',
         auto_now_add=True,
@@ -21,6 +17,17 @@ class IsPublishedCreatedAtModel(models.Model):
     class Meta:
         abstract = True
         ordering = ('created_at', )
+
+
+class IsPublishedCreatedAtModel(CreatedAt):
+    is_published = models.BooleanField(
+        'Опубликовано',
+        default=True,
+        help_text='Снимите галочку, чтобы скрыть публикацию.'
+    )
+
+    class Meta:
+        abstract = True
 
 
 class Location(IsPublishedCreatedAtModel):
@@ -75,7 +82,8 @@ class Post(IsPublishedCreatedAtModel):
     )
     image = models.ImageField(
         verbose_name='Картинка у публикации',
-        blank=True)
+        blank=True
+    )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -108,7 +116,7 @@ class Post(IsPublishedCreatedAtModel):
         return reverse('blog:post_detail', args=(self.id))
 
 
-class Comment(IsPublishedCreatedAtModel):
+class Comment(CreatedAt):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -121,11 +129,10 @@ class Comment(IsPublishedCreatedAtModel):
     )
     text = models.TextField(verbose_name='Текст комментария')
 
-    class Meta:
+    class Meta(CreatedAt.Meta):
         default_related_name = 'comments'
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-        ordering = ('created_at',)
 
     def __str__(self):
-        return self.text[:30]
+        return self.text[:constants.COMMENT_LENGTH]

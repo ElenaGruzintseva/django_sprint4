@@ -1,10 +1,12 @@
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 
-from .models import Category, Location, Post
+from .models import Category, Comment, Location, Post
 
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
+    readonly_fields = ["preview"]
     search_fields = ('text',)
     list_display = (
         'id',
@@ -25,6 +27,11 @@ class PostAdmin(admin.ModelAdmin):
     )
     list_filter = ('created_at',)
     empty_value_display = '-пусто-'
+
+    def preview(self, obj):
+        return mark_safe(
+            f'<img src="{obj.image.url}" style="max-height: 200px;">'
+        )
 
 
 @admin.register(Category)
@@ -53,3 +60,9 @@ class LocationAdmin(admin.ModelAdmin):
     )
     list_display_links = ('name',)
     list_filter = ('name',)
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    search_fields = ('text',)
+    list_display = ('author', 'text',)
