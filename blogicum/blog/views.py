@@ -32,25 +32,16 @@ class ProfileUserView(ListView):
     model = Post
     template_name = 'blog/profile.html'
     paginate_by = PAGINATOR
-
+    
     def get_queryset(self):
-        self.author = get_object_or_404(
-            User,
-            username=self.kwargs['username']
-        )
-        author_posts = annotate_post(self.author.posts.select_related(
-            'author',
-            'location',
-            'category',
-        )
-        )
-        if self.request.user != self.author:
-            return published_filter(author_posts)
-        return author_posts
+        authors_posts = annotate_post(get_object_or_404(User,username=self.kwargs['username']).posts)
+        if self.request.user != authors_posts:
+            authors_posts = published_filter(authors_posts)
+        return authors_posts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['profile'] = self.author
+        context['profile'] = self.get_queryset()
         return context
 
 
@@ -87,15 +78,15 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     form_class = PostForm
     template_name = 'blog/create.html'
 
+    def get_user(self):
+        return {'username': self.request.user}
+
     def form_valid(self, form):
-        form.instance.author = self.request.user
+        form.instance.author = self.get_user()
         return super().form_valid(form)
 
-    def get_success_url(self):
-        return reverse(
-            'blog:profile',
-            kwargs={'username': self.request.user}
-        )
+    def get_success_url(self, *kwargs):
+        return reverse('blog:profile', kwargs=self.get_user())
 
 
 class PostDetailView(DetailView):
