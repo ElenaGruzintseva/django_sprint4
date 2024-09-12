@@ -18,7 +18,15 @@ class PostAdmin(admin.ModelAdmin):
         'location',
         'is_published',
         'created_at',
+        'preview',
     )
+
+    def preview(self, obj):
+        if self.readonly_fields:
+            return mark_safe(
+                f'<img src="{obj.image.url}" style="max-height: 200px;">'
+            )
+
     list_display_links = ('title',)
     list_editable = (
         'category',
@@ -27,11 +35,6 @@ class PostAdmin(admin.ModelAdmin):
     )
     list_filter = ('created_at',)
     empty_value_display = '-пусто-'
-
-    def preview(self, obj):
-        return mark_safe(
-            f'<img src="{obj.image.url}" style="max-height: 200px;">'
-        )
 
 
 @admin.register(Category)
