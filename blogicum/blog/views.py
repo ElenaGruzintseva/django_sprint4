@@ -32,16 +32,25 @@ class ProfileUserView(ListView):
     model = Post
     template_name = 'blog/profile.html'
     paginate_by = PAGINATOR
-    
+
     def get_queryset(self):
-        authors_posts = annotate_post(get_object_or_404(User,username=self.kwargs['username']).posts)
-        if self.request.user != authors_posts:
-            authors_posts = published_filter(authors_posts)
-        return authors_posts
+        self.author = get_object_or_404(
+            User,
+            username=self.kwargs['username']
+        )
+        author_posts = annotate_post((
+            'author',
+            'location',
+            'category',
+        )
+        )
+        if self.request.user != self.author:
+            return published_filter(author_posts)
+        return author_posts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['profile'] = self.get_queryset()
+        context['profile'] = self.author
         return context
 
 
@@ -93,18 +102,14 @@ class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
-    queryset = annotate_post((Post.objects.all())).select_related(
-        'author',
-        'location',
-        'category',
-    )
+    queryset = annotate_post((Post.objects.all()))
 
-    def get_object(self, queryset=None):
-        post = super().get_object(queryset=queryset)
-        if post.author != self.request.user:
-            return get_object_or_404(published_filter((Post.objects.all())),
+    def get_object(self):
+        post = super().get_object_or_404(queryset=annotate_post((Post.objects.all())))
+        if post.author == self.request.user:
+            return post
+        return get_object_or_404(published_filter((Post.objects.all())),
                                      pk=self.kwargs.get(self.pk_url_kwarg))
-        return post
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
