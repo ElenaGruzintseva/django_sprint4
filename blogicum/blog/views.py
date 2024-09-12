@@ -158,10 +158,8 @@ class CategoryPostsView(ListView):
 class CommentAddView(CommentMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
-        form.instance.post = get_object_or_404(
-            annotate_post((Post.objects.all())),
-            pk=self.kwargs['post_id']
-        )
+        form.instance.post = get_object_or_404(Post.objects.all(),
+                                               pk=self.kwargs['post_id'])
         return super().form_valid(form)
 
 
