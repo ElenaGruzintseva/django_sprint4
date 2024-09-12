@@ -15,20 +15,17 @@ from .constants import PAGINATOR
 from .mixins import CommentMixin, OnlyAuthorMixin, PostMixin
 
 
-def published_filter(queryset: QuerySet = Post.objects.all()):
-    queryset = queryset.filter(
+def published_filter(queryset):
+    return queryset.filter(
         is_published=True,
         pub_date__lte=timezone.now(),
         category__is_published=True
     )
-    return queryset
 
-
-def annotate_post(queryset: QuerySet = Post.objects.all()):
-    queryset = queryset.select_related('category').annotate(
+def annotate_post(queryset):
+    return queryset.select_related('category', 'author', 'location').annotate(
         comment_count=Count('comments')
     ).order_by('-pub_date')
-    return queryset
 
 
 class ProfileUserView(ListView):
@@ -82,7 +79,7 @@ class PostListView(ListView):
     form_class = PostForm
     template_name = 'blog/index.html'
     paginate_by = PAGINATOR
-    queryset = annotate_post(published_filter())
+    queryset = annotate_post(published_filter(Post.objects.all()))
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -105,7 +102,7 @@ class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
-    queryset = annotate_post().select_related(
+    queryset = annotate_post((Post.objects.all())).select_related(
         'author',
         'location',
         'category',
@@ -114,7 +111,7 @@ class PostDetailView(DetailView):
     def get_object(self, queryset=None):
         post = super().get_object(queryset=queryset)
         if post.author != self.request.user:
-            return get_object_or_404(published_filter(),
+            return get_object_or_404(published_filter((Post.objects.all())),
                                      pk=self.kwargs.get(self.pk_url_kwarg))
         return post
 
@@ -143,19 +140,18 @@ class CategoryPostsView(ListView):
     template_name = 'blog/category.html'
     paginate_by = PAGINATOR
 
-    def get_object(self, **kwargs):
+    def get_category(self, **kwargs):
         category = get_object_or_404(
             Category, slug=self.kwargs['category_slug'],
             is_published=True)
         return category
 
     def get_queryset(self):
-        category = self.get_object()
-        return annotate_post(published_filter(category.posts))
+        return annotate_post(published_filter(self.get_category().posts))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = self.get_object()
+        context['category'] = self.get_category()
         return context
 
 
@@ -163,7 +159,7 @@ class CommentAddView(CommentMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         form.instance.post = get_object_or_404(
-            annotate_post(),
+            annotate_post((Post.objects.all())),
             pk=self.kwargs['post_id']
         )
         return super().form_valid(form)
