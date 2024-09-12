@@ -1,5 +1,4 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-
 from django.shortcuts import redirect
 from django.urls import reverse
 

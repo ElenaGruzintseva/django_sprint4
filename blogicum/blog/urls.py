@@ -31,6 +31,4 @@ urlpatterns = [
          CommentEditView.as_view(), name='edit_comment'),
     path('posts/<int:post_id>/delete_comment/<int:comment_id>/',
          CommentDeleteView.as_view(), name='delete_comment'),
-    path('auth/registration/',
-         RegistrationView.as_view(), name='registration'),
 ]

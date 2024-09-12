@@ -1,14 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import UserCreationForm
-
 from django.shortcuts import get_object_or_404
-
 from django.db.models.query import QuerySet
 from django.db.models import Count
-
 from django.utils import timezone
 from django.urls import reverse, reverse_lazy
-
 from django.views.generic import (
     DeleteView, DetailView, CreateView, ListView, UpdateView
 )
