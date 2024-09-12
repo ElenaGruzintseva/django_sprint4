@@ -9,8 +9,7 @@ from .forms import PostForm, CommentForm
 class OnlyAuthorMixin(UserPassesTestMixin):
 
     def test_func(self):
-        object = self.get_object()
-        return object.author == self.request.user
+        return self.get_object().author == self.request.user
 
 
 class PostMixin(LoginRequiredMixin, OnlyAuthorMixin):
@@ -18,22 +17,20 @@ class PostMixin(LoginRequiredMixin, OnlyAuthorMixin):
     pk_url_kwarg = 'post_id'
     form_class = PostForm
     template_name = 'blog/create.html'
+    def get_user(self):
+        return {'username': self.request.user}
 
     def handle_no_permission(self):
-        return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
+        return redirect('blog:post_detail', post_id=self.pk_url_kwarg)
 
-    def get_success_url(self):
+    def get_success_url(self, *kwargs):
         return reverse(
-            'blog:profile',
-            kwargs={'username': self.request.user}
+            'blog:profile', kwargs=self.get_user()
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = PostForm(instance=self.object)
-        context['comments'] = self.object.comments.select_related(
-            'author'
-        )
         return context
 
 
