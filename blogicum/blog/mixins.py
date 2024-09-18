@@ -17,6 +17,7 @@ class PostMixin(LoginRequiredMixin, OnlyAuthorMixin):
     pk_url_kwarg = 'post_id'
     form_class = PostForm
     template_name = 'blog/create.html'
+
     def get_user(self):
         return {'username': self.request.user}
 

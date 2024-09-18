@@ -1,7 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import get_object_or_404
-from django.db.models.query import QuerySet
 from django.db.models import Count
 from django.utils import timezone
 from django.urls import reverse, reverse_lazy
@@ -22,6 +21,7 @@ def published_filter(queryset):
         category__is_published=True
     )
 
+
 def annotate_post(queryset):
     return queryset.select_related('category', 'author', 'location').annotate(
         comment_count=Count('comments')
@@ -38,19 +38,15 @@ class ProfileUserView(ListView):
             User,
             username=self.kwargs['username']
         )
-        author_posts = annotate_post((
-            'author',
-            'location',
-            'category',
-        )
-        )
+        author_posts = annotate_post(self.author.posts)
         if self.request.user != self.author:
-            return published_filter(author_posts)
+            author_posts = published_filter(author_posts)
         return author_posts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['profile'] = self.author
+        context['page_obj'] = self.get_queryset()
         return context
 
 
@@ -87,15 +83,15 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     form_class = PostForm
     template_name = 'blog/create.html'
 
-    def get_user(self):
-        return {'username': self.request.user}
-
     def form_valid(self, form):
-        form.instance.author = self.get_user()
+        form.instance.author = self.request.user
         return super().form_valid(form)
 
-    def get_success_url(self, *kwargs):
-        return reverse('blog:profile', kwargs=self.get_user())
+    def get_success_url(self):
+        return reverse(
+            'blog:profile',
+            kwargs={'username': self.request.user}
+        )
 
 
 class PostDetailView(DetailView):
@@ -104,12 +100,14 @@ class PostDetailView(DetailView):
     pk_url_kwarg = 'post_id'
     queryset = annotate_post((Post.objects.all()))
 
-    def get_object(self):
-        post = super().get_object_or_404(queryset=annotate_post((Post.objects.all())))
+    def get_object_or_404(self):
+        post = super().get_object_or_404(queryset=annotate_post(
+            (Post.objects.all()))
+        )
         if post.author == self.request.user:
             return post
         return get_object_or_404(published_filter((Post.objects.all())),
-                                     pk=self.kwargs.get(self.pk_url_kwarg))
+                                 pk=self.kwargs.get(self.pk_url_kwarg))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
