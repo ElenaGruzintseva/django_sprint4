@@ -46,7 +46,6 @@ class ProfileUserView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['profile'] = self.author
-        context['page_obj'] = self.get_queryset()
         return context
 
 
@@ -100,8 +99,8 @@ class PostDetailView(DetailView):
     pk_url_kwarg = 'post_id'
     queryset = annotate_post((Post.objects.all()))
 
-    def get_object_or_404(self):
-        post = super().get_object_or_404(queryset=annotate_post(
+    def get_object(self):
+        post = super().get_object(queryset=annotate_post(
             (Post.objects.all()))
         )
         if post.author == self.request.user:
