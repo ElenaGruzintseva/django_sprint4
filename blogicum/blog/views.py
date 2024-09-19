@@ -33,19 +33,16 @@ class ProfileUserView(ListView):
     template_name = 'blog/profile.html'
     paginate_by = PAGINATOR
 
-    def get_queryset(self):
-        self.author = get_object_or_404(
-            User,
-            username=self.kwargs['username']
-        )
-        author_posts = annotate_post(self.author.posts)
-        if self.request.user != self.author:
-            author_posts = published_filter(author_posts)
-        return author_posts
+    def get_profile(self):
+        author_posts = get_object_or_404(User, username=self.kwargs['username'])
+        posts = annotate_post(Post.objects.filter(author=author_posts))
+        if self.request.user != author_posts:
+            posts = published_filter(posts)
+        return posts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['profile'] = self.author
+        context['profile'] = self.kwargs['username']
         return context
 
 
@@ -88,8 +85,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse(
-            'blog:profile',
-            kwargs={'username': self.request.user}
+            'blog:profile', kwargs={'username': self.request.user.username}
         )
 
 
@@ -97,10 +93,9 @@ class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
-    queryset = annotate_post((Post.objects.all()))
 
-    def get_object(self):
-        post = super().get_object(queryset=annotate_post(
+    def get_object_or_404(self):
+        post = super().get_object_or_404(annotate_post(
             (Post.objects.all()))
         )
         if post.author == self.request.user:
@@ -134,10 +129,10 @@ class CategoryPostsView(ListView):
     paginate_by = PAGINATOR
 
     def get_category(self, **kwargs):
-        category = get_object_or_404(
+        return get_object_or_404(
             Category, slug=self.kwargs['category_slug'],
-            is_published=True)
-        return category
+            is_published=True
+        )
 
     def get_queryset(self):
         return annotate_post(published_filter(self.get_category().posts))

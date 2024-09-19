@@ -6,7 +6,7 @@ from .models import Category, Comment, Location, Post
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    readonly_fields = ["preview"]
+    readonly_fields = ("preview",)
     search_fields = ('text',)
     list_display = (
         'id',
@@ -22,7 +22,7 @@ class PostAdmin(admin.ModelAdmin):
     )
 
     def preview(self, obj):
-        if self.readonly_fields:
+        if obj.image:
             return mark_safe(
                 f'<img src="{obj.image.url}" style="max-height: 200px;">'
             )
