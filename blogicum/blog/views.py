@@ -1,9 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import get_object_or_404
 from django.db.models import Count
 from django.utils import timezone
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.views.generic import (
     DeleteView, DetailView, CreateView, ListView, UpdateView
 )
@@ -33,16 +32,20 @@ class ProfileUserView(ListView):
     template_name = 'blog/profile.html'
     paginate_by = PAGINATOR
 
-    def get_profile(self):
-        author_posts = get_object_or_404(User, username=self.kwargs['username'])
-        posts = annotate_post(Post.objects.filter(author=author_posts))
-        if self.request.user != author_posts:
+    def get_profile_user(self):
+        return get_object_or_404(User, username=self.kwargs['username'])
+
+    def get_queryset(self):
+        posts = annotate_post(Post.objects.filter(
+            author=self.get_profile_user()
+        ))
+        if self.request.user != self.get_profile_user():
             posts = published_filter(posts)
         return posts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['profile'] = self.kwargs['username']
+        context['profile'] = self.get_profile_user()
         return context
 
 
@@ -94,10 +97,9 @@ class PostDetailView(DetailView):
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
 
-    def get_object_or_404(self):
-        post = super().get_object_or_404(annotate_post(
-            (Post.objects.all()))
-        )
+    def get_object(self):
+        post = get_object_or_404(annotate_post(
+            (Post.objects.all())), pk=self.kwargs.get(self.pk_url_kwarg))
         if post.author == self.request.user:
             return post
         return get_object_or_404(published_filter((Post.objects.all())),
@@ -157,9 +159,3 @@ class CommentEditView(CommentMixin, OnlyAuthorMixin, UpdateView):
 
 class CommentDeleteView(CommentMixin, OnlyAuthorMixin, DeleteView):
     pass
-
-
-class RegistrationView(CreateView):
-    template_name = 'registration/registration_form.html'
-    form_class = UserCreationForm
-    success_url = reverse_lazy('blog:index')
